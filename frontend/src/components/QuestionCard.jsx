@@ -21,7 +21,7 @@ export default function QuestionCard({
   const progress = (currentQuestion / totalQuestions) * 100;
 
   // 30 minutes in seconds
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [timeLeft, setTimeLeft] = useState(45 * 60);
 
   useEffect(() => {
     if (timeLeft <= 0) {

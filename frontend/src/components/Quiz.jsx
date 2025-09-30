@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import QuizStartPage from "./QuizStartPage";
 import QuestionCard from "./QuestionCard";
 import QuizResults from "./QuizResults";
-import ThemeToggle from "./ThemeToggle";
-
-const QUIZ_ID = 1; // Replace with dynamic quiz ID if needed
 
 export default function Quiz() {
+  const [quizzes, setQuizzes] = useState([]);
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [quizState, setQuizState] = useState("start"); // 'start' | 'taking' | 'results'
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [questions, setQuestions] = useState([]);
@@ -14,9 +13,25 @@ export default function Quiz() {
   const [score, setScore] = useState(0);
   const [quizResults, setQuizResults] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const startQuiz = async () => {
+  // Fetch all quizzes on mount
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/quiz`);
+        const data = await res.json();
+        setQuizzes(data);
+      } catch (err) {
+        console.error("Failed to fetch quizzes:", err);
+      }
+    };
+    fetchQuizzes();
+  }, [apiBaseUrl]);
+
+  const startQuiz = async (quiz) => {
+    setSelectedQuiz(quiz);
     setQuizState("taking");
     setCurrentQuestionIndex(0);
     setAnswers({});
@@ -25,10 +40,9 @@ export default function Quiz() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${apiBaseUrl}/quiz/${QUIZ_ID}/questions`);
+      const res = await fetch(`${apiBaseUrl}/quiz/${quiz.id}/questions`);
       const data = await res.json();
 
-      // Map SQLite backend format to frontend format
       const formattedQuestions = data.map((q) => ({
         id: q.id,
         text: q.text,
@@ -49,7 +63,7 @@ export default function Quiz() {
     const questionId = questions[currentQuestionIndex].id;
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: answer,
+      [questionId]: answer, // keep as "1"–"4"
     }));
   };
 
@@ -66,17 +80,16 @@ export default function Quiz() {
   };
 
   const submitQuiz = async () => {
+    if (!selectedQuiz) return;
+
     try {
-      const res = await fetch(`${apiBaseUrl}/quiz/${QUIZ_ID}/submit`, {
+      const res = await fetch(`${apiBaseUrl}/quiz/${selectedQuiz.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers }),
       });
+
       const result = await res.json();
-
-      console.log("Submission result:", result);
-
-      // Use the results returned by backend directly
       setScore(result.score);
       setQuizResults(result.results);
       setQuizState("results");
@@ -87,6 +100,7 @@ export default function Quiz() {
   };
 
   const restartQuiz = () => {
+    setSelectedQuiz(null);
     setQuizState("start");
     setCurrentQuestionIndex(0);
     setAnswers({});
@@ -99,12 +113,12 @@ export default function Quiz() {
 
   return (
     <div className="relative">
-      <div className="absolute top-4 right-4 z-10">
-        <ThemeToggle />
-      </div>
-
       {quizState === "start" && (
-        <QuizStartPage onStart={startQuiz} loading={loading} />
+        <QuizStartPage
+          quizzes={quizzes}
+          onStart={startQuiz}
+          loading={loading}
+        />
       )}
 
       {quizState === "taking" && currentQuestion && (
@@ -120,6 +134,7 @@ export default function Quiz() {
           canGoNext={currentQuestionIndex < questions.length - 1}
           canGoPrevious={currentQuestionIndex > 0}
           isLastQuestion={currentQuestionIndex === questions.length - 1}
+          timeLimit={selectedQuiz?.time_limit || 0} // pass time limit for timer
         />
       )}
 
