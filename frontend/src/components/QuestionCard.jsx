@@ -32,10 +32,8 @@ export default function QuestionCard({
     setTimeLeft(timeLimit);
   }, [timeLimit]);
 
-  // Timer effect
   useEffect(() => {
     if (timeLeft <= 0) {
-      // ensure we don't call onSubmit repeatedly
       onSubmit();
       return;
     }
