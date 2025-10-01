@@ -10,4 +10,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  test: {
+    globals: true, // allows using `describe`, `it`, `expect` without import
+    environment: "jsdom", // simulates browser (fixes `document is not defined`)
+    setupFiles: "./src/setupTests.js", // your test setup file (RTL config, mocks, etc.)
+  },
 });

@@ -17,11 +17,9 @@ router.post("/api/quiz", (req, res) => {
     const stmt = db.prepare(
       "INSERT INTO quiz (title, description, time_limit) VALUES (?, ?, ?)"
     );
-    const result = stmt.run(title, description || null, time_limit || 1800); // default 30 mins
+    const result = stmt.run(title, description || null, time_limit || 1800);
 
-    res
-      .status(201)
-      .json({ message: "Quiz created", quizId: result.lastInsertRowid });
+    res.status(201).json({ message: "Quiz created", quizId: result.lastInsertRowid });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to create quiz" });
@@ -31,9 +29,8 @@ router.post("/api/quiz", (req, res) => {
 // Get all quizzes
 router.get("/api/quiz", (_req, res) => {
   const quizzes = db
-    .prepare("SELECT * FROM quiz")
-    .all()
-    .sort((a, b) => b.id - a.id);
+    .prepare("SELECT * FROM quiz ORDER BY id DESC")
+    .all();
   res.json(quizzes);
 });
 
@@ -43,7 +40,7 @@ router.get("/api/quiz", (_req, res) => {
 
 // Add multiple questions to a quiz
 router.post("/api/quiz/:quizId/questions", (req, res) => {
-  const { quizId } = req.params;
+  const quizId = parseInt(req.params.quizId);
   const { questions } = req.body;
 
   if (!questions || !Array.isArray(questions)) {
@@ -71,23 +68,23 @@ router.post("/api/quiz/:quizId/questions", (req, res) => {
   }
 });
 
-// Get all questions for a quiz (without correct answers) and safer for quiz overview (only returns totalQuestions)
+// Get safe questions count only
 router.get("/api/quiz/safe/:quizId/questions", (req, res) => {
-  const { quizId } = req.params;
+  const quizId = parseInt(req.params.quizId);
+
   const questions = db
     .prepare(
       "SELECT id, text, option1, option2, option3, option4 FROM questions WHERE quizId = ?"
     )
     .all(quizId);
 
-  res.json({
-    totalQuestions: questions.length,
-  });
+  res.json({ totalQuestions: questions.length });
 });
 
-// Get all questions for a quiz (without correct answers)
+// Get all questions for a quiz
 router.get("/api/quiz/:quizId/questions", (req, res) => {
-  const { quizId } = req.params;
+  const quizId = parseInt(req.params.quizId);
+
   const questions = db
     .prepare(
       "SELECT id, text, option1, option2, option3, option4 FROM questions WHERE quizId = ?"
@@ -97,10 +94,10 @@ router.get("/api/quiz/:quizId/questions", (req, res) => {
   res.json(questions);
 });
 
-// Submit answers for a quiz and calculate score
+// Submit quiz answers and calculate score
 router.post("/api/quiz/:quizId/submit", (req, res) => {
-  const { quizId } = req.params;
-  const userAnswers = req.body.answers || {}; 
+  const quizId = parseInt(req.params.quizId);
+  const userAnswers = req.body.answers || {};
 
   const questions = db
     .prepare("SELECT * FROM questions WHERE quizId = ?")
@@ -108,7 +105,8 @@ router.post("/api/quiz/:quizId/submit", (req, res) => {
 
   let score = 0;
   const results = questions.map((q) => {
-    const userAnswer = parseInt(userAnswers[q.id]);
+    const userAnswer =
+      userAnswers[q.id] !== undefined ? parseInt(userAnswers[q.id]) : null;
     const isCorrect = userAnswer === q.correct_option;
     if (isCorrect) score++;
 
@@ -116,7 +114,7 @@ router.post("/api/quiz/:quizId/submit", (req, res) => {
       id: q.id,
       questionText: q.text,
       options: [q.option1, q.option2, q.option3, q.option4],
-      userAnswer: userAnswer || null,
+      userAnswer,
       correctAnswer: q.correct_option,
       isCorrect,
     };

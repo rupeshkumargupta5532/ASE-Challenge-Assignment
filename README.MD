@@ -2,7 +2,7 @@
 
 This is a **full-stack quiz application** built with:
 
-- **Backend**: Node.js, Express, SQLite (with `better-sqlite3`)
+- **Backend**: Node.js (`node v22.20.0`), Express, SQLite (with `better-sqlite3`)
 - **Frontend**: React + Vite + TailwindCSS
 - **Environment Variables**: Managed via `.env`
 
@@ -29,7 +29,7 @@ git clone https://github.com/rupeshkumargupta5532/ASE-Challenge-Assignment
 cd ASE-Challenge-Assignment
 ```
 
-## 2. Setup Backend (Try to use node 22.00)
+## 2. Setup Backend (Try to use node v22.20.0)
 
 ```bash
 cd backend
@@ -105,5 +105,42 @@ INSERT INTO questions (quizId, text, option1, option2, option3, option4, correct
 (1, 'What is the capital of France?', 'Berlin', 'Madrid', 'Paris', 'Rome', 3),
 (1, 'Which planet is known as the Red Planet?', 'Earth', 'Mars', 'Jupiter', 'Venus', 2),
 (2, 'What is H2O commonly known as?', 'Oxygen', 'Hydrogen', 'Water', 'Helium', 3);
+
+```
+
+## 6. Running Test Cases
+
+# Run backend test cases
+
+```bash
+cd backend
+npm run test
+
+```
+
+# Run frontend test cases
+
+```bash
+cd frontend
+npm run test || npm run test:coverage
+
+```
+
+### Assumptions. (Schema Architecture --> Data Flow Table)
+
+```bash
++-----------+      1   ---------  *      +------------+
+|   quiz    |-------------------------->|  questions |
++-----------+                          +------------+
+| id        |                          | id         |
+| title     |                          | quizId     |
+| description|                         | text       |
+| time_limit|                          | option1    |
++-----------+                          | option2    |
+                                       | option3    |
+                                       | option4    |
+                                       | correct_option |
+                                       +------------+
+
 
 ```
