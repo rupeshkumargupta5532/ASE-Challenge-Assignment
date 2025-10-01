@@ -37,7 +37,7 @@ describe("QuestionCard", () => {
       />
     );
 
-   it("renders question text and options", () => {
+  it("renders question text and options", () => {
     renderCard();
 
     const cardTitle = screen.getByText(mockQuestion.text);
