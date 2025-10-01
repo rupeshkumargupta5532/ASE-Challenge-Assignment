@@ -4,12 +4,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Clock, Trophy, Users } from "lucide-react";
 
 export default function QuizStartPage({ quizzes = [], onStart }) {
-  const [selectedQuizId, setSelectedQuizId] = useState(quizzes[0]?.id || null);
-  const [selectedQuiz, setSelectedQuiz] = useState(quizzes[0] || {});
+  const [selectedQuizId, setSelectedQuizId] = useState(null);
+  const [selectedQuiz, setSelectedQuiz] = useState({});
   const [questionsCount, setQuestionsCount] = useState(0);
   const [loadingCount, setLoadingCount] = useState(false);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  // Set default quiz when quizzes first load
+  useEffect(() => {
+    if (quizzes.length > 0 && !selectedQuizId) {
+      setSelectedQuizId(quizzes[0].id);
+      setSelectedQuiz(quizzes[0]);
+    }
+  }, [quizzes, selectedQuizId]);
 
   // Fetch totalQuestions whenever a quiz is selected
   useEffect(() => {
@@ -135,9 +143,9 @@ export default function QuizStartPage({ quizzes = [], onStart }) {
 
         {/* Start Button */}
         <div className="text-center">
-          <Button 
-            size="lg" 
-            className="px-8 py-3 text-lg" 
+          <Button
+            size="lg"
+            className="px-8 py-3 text-lg"
             onClick={handleStart}
             disabled={loadingCount}
             data-testid="button-start-quiz"

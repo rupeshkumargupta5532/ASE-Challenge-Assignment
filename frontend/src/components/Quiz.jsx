@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import QuizStartPage from "./QuizStartPage";
 import QuestionCard from "./QuestionCard";
 import QuizResults from "./QuizResults";
@@ -9,14 +9,14 @@ export default function Quiz() {
   const [quizState, setQuizState] = useState("start"); // 'start' | 'taking' | 'results'
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState({}); // { [questionId]: "1"|"2"|"3"|"4" }
+  const [skipped, setSkipped] = useState([]); // array of questionIds
   const [score, setScore] = useState(0);
   const [quizResults, setQuizResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  // Fetch all quizzes on mount
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
@@ -35,6 +35,7 @@ export default function Quiz() {
     setQuizState("taking");
     setCurrentQuestionIndex(0);
     setAnswers({});
+    setSkipped([]);
     setScore(0);
     setQuizResults([]);
     setLoading(true);
@@ -60,11 +61,27 @@ export default function Quiz() {
   };
 
   const selectAnswer = (answer) => {
-    const questionId = questions[currentQuestionIndex].id;
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: answer, // keep as "1"–"4"
-    }));
+    if (!questions.length) return;
+    const qId = questions[currentQuestionIndex].id;
+    setAnswers((prev) => ({ ...prev, [qId]: answer }));
+
+    // If it was previously skipped, remove from skipped
+    setSkipped((prev) => prev.filter((id) => id !== qId));
+  };
+
+  const skipQuestion = () => {
+    if (!questions.length) return;
+    const qId = questions[currentQuestionIndex].id;
+
+    // Only mark skipped if not answered
+    if (!answers[qId] && !skipped.includes(qId)) {
+      setSkipped((prev) => [...prev, qId]);
+    }
+
+    // Move to next question if possible
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
   };
 
   const goToNext = () => {
@@ -79,9 +96,14 @@ export default function Quiz() {
     }
   };
 
+  const goToQuestion = (index) => {
+    if (index >= 0 && index < questions.length) {
+      setCurrentQuestionIndex(index);
+    }
+  };
+
   const submitQuiz = async () => {
     if (!selectedQuiz) return;
-
     try {
       const res = await fetch(`${apiBaseUrl}/quiz/${selectedQuiz.id}/submit`, {
         method: "POST",
@@ -103,7 +125,9 @@ export default function Quiz() {
     setSelectedQuiz(null);
     setQuizState("start");
     setCurrentQuestionIndex(0);
+    setQuestions([]);
     setAnswers({});
+    setSkipped([]);
     setScore(0);
     setQuizResults([]);
   };
@@ -114,11 +138,7 @@ export default function Quiz() {
   return (
     <div className="relative">
       {quizState === "start" && (
-        <QuizStartPage
-          quizzes={quizzes}
-          onStart={startQuiz}
-          loading={loading}
-        />
+        <QuizStartPage quizzes={quizzes} onStart={startQuiz} loading={loading} />
       )}
 
       {quizState === "taking" && currentQuestion && (
@@ -130,21 +150,21 @@ export default function Quiz() {
           onAnswerSelect={selectAnswer}
           onNext={goToNext}
           onPrevious={goToPrevious}
+          onSkip={skipQuestion}
           onSubmit={submitQuiz}
           canGoNext={currentQuestionIndex < questions.length - 1}
           canGoPrevious={currentQuestionIndex > 0}
           isLastQuestion={currentQuestionIndex === questions.length - 1}
-          timeLimit={selectedQuiz?.time_limit || 0} // pass time limit for timer
+          timeLimit={selectedQuiz?.time_limit || 0}
+          questions={questions}
+          answers={answers}
+          skipped={skipped}
+          onNavigateTo={goToQuestion}
         />
       )}
 
       {quizState === "results" && (
-        <QuizResults
-          score={score}
-          totalQuestions={questions.length}
-          results={quizResults}
-          onRestart={restartQuiz}
-        />
+        <QuizResults score={score} totalQuestions={questions.length} results={quizResults} onRestart={restartQuiz} />
       )}
     </div>
   );
